@@ -6,7 +6,6 @@ const path = require('path');
 const express = require('express');
 const session = require('express-session');
 const passport = require('passport');
-const Database = require('better-sqlite3');
 const fs = require('fs');
 
 const db = require('./src/db');
@@ -38,42 +37,45 @@ app.use(express.static(path.join(__dirname, 'public')));
 app.use(express.urlencoded({ extended: true }));
 app.use(express.json());
 
-// SQLite-based session store
-class SqliteSessionStore extends session.Store {
+// File-based session store
+class FileSessionStore extends session.Store {
   constructor() {
     super();
-    this.dataDir = path.join(__dirname, 'data');
-    if (!fs.existsSync(this.dataDir)) {
-      fs.mkdirSync(this.dataDir, { recursive: true });
+    this.sessionDir = path.join(__dirname, 'data', 'sessions');
+    if (!fs.existsSync(this.sessionDir)) {
+      fs.mkdirSync(this.sessionDir, { recursive: true });
     }
-    this.db = new Database(path.join(this.dataDir, 'sessions.db'));
-    this.db.exec(`
-      CREATE TABLE IF NOT EXISTS sessions (
-        sid TEXT PRIMARY KEY,
-        sess TEXT NOT NULL,
-        expiresAt INTEGER NOT NULL
-      )
-    `);
+    // Cleanup expired sessions every 10 minutes
+    setInterval(() => this.cleanup(), 10 * 60 * 1000);
+  }
+
+  getSessionPath(sid) {
+    return path.join(this.sessionDir, `${sid}.json`);
   }
 
   get(sid, callback) {
     try {
-      const row = this.db.prepare('SELECT sess FROM sessions WHERE sid = ? AND expiresAt > ?').get(sid, Date.now());
-      if (!row) return callback(null, null);
-      callback(null, JSON.parse(row.sess));
+      const sessionPath = this.getSessionPath(sid);
+      if (!fs.existsSync(sessionPath)) {
+        return callback(null, null);
+      }
+      const data = fs.readFileSync(sessionPath, 'utf8');
+      const session = JSON.parse(data);
+      if (session.expiresAt < Date.now()) {
+        fs.unlinkSync(sessionPath);
+        return callback(null, null);
+      }
+      callback(null, session.data);
     } catch (err) {
-      callback(err);
+      callback(null, null);
     }
   }
 
   set(sid, sess, callback) {
     try {
+      const sessionPath = this.getSessionPath(sid);
       const expiresAt = Date.now() + (sess.cookie?.maxAge || 7 * 24 * 60 * 60 * 1000);
-      this.db.prepare('INSERT OR REPLACE INTO sessions (sid, sess, expiresAt) VALUES (?, ?, ?)').run(
-        sid,
-        JSON.stringify(sess),
-        expiresAt
-      );
+      fs.writeFileSync(sessionPath, JSON.stringify({ data: sess, expiresAt }, null, 2));
       callback(null);
     } catch (err) {
       callback(err);
@@ -82,17 +84,40 @@ class SqliteSessionStore extends session.Store {
 
   destroy(sid, callback) {
     try {
-      this.db.prepare('DELETE FROM sessions WHERE sid = ?').run(sid);
+      const sessionPath = this.getSessionPath(sid);
+      if (fs.existsSync(sessionPath)) {
+        fs.unlinkSync(sessionPath);
+      }
       callback(null);
     } catch (err) {
       callback(err);
     }
   }
+
+  cleanup() {
+    try {
+      const files = fs.readdirSync(this.sessionDir);
+      files.forEach((file) => {
+        const sessionPath = path.join(this.sessionDir, file);
+        try {
+          const data = fs.readFileSync(sessionPath, 'utf8');
+          const session = JSON.parse(data);
+          if (session.expiresAt < Date.now()) {
+            fs.unlinkSync(sessionPath);
+          }
+        } catch (err) {
+          // ignore
+        }
+      });
+    } catch (err) {
+      // ignore
+    }
+  }
 }
 
-const sessionStore = new SqliteSessionStore();
+const sessionStore = new FileSessionStore();
 
-// Sessions with SQLite store
+// Sessions with file-based store
 app.use(
   session({
     store: sessionStore,
