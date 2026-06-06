@@ -1,0 +1,9 @@
+<%- include('partials/header', { pageTitle: 'Erreur ' + code }) %>
+<div class="container-narrow section">
+  <div class="card empty">
+    <h1 style="color:var(--navy); font-size:48px; margin:0"><%= code %></h1>
+    <p class="muted"><%= message %></p>
+    <a href="/dashboard" class="btn btn-outline">← Retour</a>
+  </div>
+</div>
+<%- include('partials/footer') %>

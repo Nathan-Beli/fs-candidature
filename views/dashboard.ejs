@@ -1,0 +1,47 @@
+<%- include('partials/header', { pageTitle: 'Candidatures' }) %>
+
+<div class="container section">
+  <div class="page-head">
+    <div>
+      <h1>Candidatures</h1>
+      <p><% if (isAdmin) { %>Gère les candidatures et leurs réponses.<% } else { %>Choisis une candidature et postule.<% } %></p>
+    </div>
+    <% if (isAdmin) { %>
+      <a href="/create" class="btn btn-gold">+ Nouvelle candidature</a>
+    <% } %>
+  </div>
+
+  <% if (!candidatures.length) { %>
+    <div class="card empty">
+      <h3>Aucune candidature pour le moment</h3>
+      <p class="muted"><% if (isAdmin) { %>Crée ta première candidature pour générer un lien partageable.<% } else { %>Reviens plus tard, aucune candidature n'est ouverte.<% } %></p>
+      <% if (isAdmin) { %><a href="/create" class="btn btn-gold">Créer une candidature</a><% } %>
+    </div>
+  <% } else { %>
+    <div class="grid">
+      <% candidatures.forEach((c) => { %>
+        <div class="card cand-card">
+          <div class="flex-between">
+            <h3><%= c.title %></h3>
+            <span class="badge badge-<%= c.status === 'open' ? 'open' : 'closed' %>"><%= c.status === 'open' ? 'Ouverte' : 'Fermée' %></span>
+          </div>
+          <div class="desc"><%= c.description ? c.description : 'Aucune description.' %></div>
+          <div class="cand-meta">
+            <span><%= c.questions.length %> question<%= c.questions.length > 1 ? 's' : '' %></span>
+            <% if (isAdmin) { %><span><%= counts[c.id] || 0 %> réponse<%= (counts[c.id] || 0) > 1 ? 's' : '' %></span><% } %>
+          </div>
+          <div class="cand-actions">
+            <% if (c.status === 'open') { %>
+              <a href="/apply/<%= c.slug %>" class="btn btn-sm">Postuler</a>
+            <% } %>
+            <% if (isAdmin) { %>
+              <a href="/candidature/<%= c.slug %>/manage" class="btn btn-sm btn-outline">Gérer</a>
+            <% } %>
+          </div>
+        </div>
+      <% }) %>
+    </div>
+  <% } %>
+</div>
+
+<%- include('partials/footer') %>

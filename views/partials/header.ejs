@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title><%= typeof pageTitle !== 'undefined' ? pageTitle + ' · ' : '' %><%= brand %></title>
+  <link rel="icon" href="/img/logo.png" />
+  <link rel="stylesheet" href="/css/style.css" />
+</head>
+<body>
+  <nav class="nav">
+    <div class="container nav-inner">
+      <a class="brand" href="/">
+        <img src="/img/logo.png" alt="<%= brand %>" />
+        <span><%= brand %><small>DESIGN / CREATIVE</small></span>
+      </a>
+      <div class="nav-links">
+        <% if (user) { %>
+          <a href="/dashboard" class="<%= currentPath === '/dashboard' ? 'active' : '' %>">Candidatures</a>
+          <% if (isAdmin) { %>
+            <a href="/create" class="<%= currentPath === '/create' ? 'active' : '' %>">Créer</a>
+            <a href="/settings" class="<%= currentPath === '/settings' ? 'active' : '' %>">Bot</a>
+          <% } %>
+          <div class="nav-user">
+            <img src="<%= user.avatar %>" alt="" />
+            <span class="name label-hide"><%= user.username %></span>
+            <a href="/logout" class="btn btn-sm btn-outline" style="color:#fff;border-color:rgba(255,255,255,.3)">Déconnexion</a>
+          </div>
+        <% } else { %>
+          <a href="/login" class="btn btn-gold btn-sm">Connexion</a>
+        <% } %>
+      </div>
+    </div>
+  </nav>
+  <main>

@@ -1,0 +1,49 @@
+<%- include('partials/header', { pageTitle: 'Connexion du bot' }) %>
+
+<div class="container-narrow section">
+  <div class="page-head">
+    <div>
+      <h1>Connexion du bot Discord</h1>
+      <p>Connecte ton bot pour relayer les candidatures dans un salon et gérer les permissions par rôle.</p>
+    </div>
+  </div>
+
+  <% if (test === 'ok') { %>
+    <div class="alert alert-success">Bot connecté avec succès<% if (botName) { %> : <strong><%= botName %></strong><% } %> ✓</div>
+  <% } else if (test === 'fail') { %>
+    <div class="alert alert-error">Échec de la connexion : <%= error %></div>
+  <% } %>
+
+  <form method="POST" action="/settings" class="card">
+    <div class="form-group">
+      <label for="botToken">Token du bot <span class="hint">(Discord Developer Portal → Bot → Token)</span></label>
+      <input type="password" id="botToken" name="botToken" placeholder="<%= settings.botToken ? '•••••••• (déjà enregistré)' : 'MTxxxxx.xxxxx.xxxxx' %>" value="<%= settings.botToken %>" />
+    </div>
+    <div class="form-group">
+      <label for="guildId">ID du serveur (Guild ID)</label>
+      <input type="text" id="guildId" name="guildId" placeholder="123456789012345678" value="<%= settings.guildId %>" />
+    </div>
+    <div class="form-group">
+      <label for="logChannelId">ID du salon des candidatures <span class="hint">(les nouvelles candidatures y seront envoyées)</span></label>
+      <input type="text" id="logChannelId" name="logChannelId" placeholder="123456789012345678" value="<%= settings.logChannelId %>" />
+    </div>
+    <div class="form-group">
+      <label for="adminRoleId">ID du rôle administrateur <span class="hint">(optionnel — les membres avec ce rôle pourront aussi créer des candidatures)</span></label>
+      <input type="text" id="adminRoleId" name="adminRoleId" placeholder="123456789012345678" value="<%= settings.adminRoleId %>" />
+    </div>
+    <button type="submit" class="btn btn-gold">Enregistrer & tester la connexion</button>
+  </form>
+
+  <div class="card" style="margin-top:18px">
+    <h3 class="mt-0" style="color:var(--navy)">Comment connecter ton bot ?</h3>
+    <ol class="muted" style="font-size:14px; line-height:1.8; padding-left:20px; margin:0">
+      <li>Va sur le <a href="https://discord.com/developers/applications" target="_blank">Discord Developer Portal</a> et ouvre ton application.</li>
+      <li>Onglet <strong>Bot</strong> → copie le <strong>Token</strong> (active "Server Members Intent" pour la vérification des rôles).</li>
+      <li>Invite le bot sur le serveur <strong>Federal Studio</strong> avec les permissions d'envoi de messages.</li>
+      <li>Active le <strong>Mode développeur</strong> dans Discord (Paramètres → Avancés) pour copier les IDs (clic droit → Copier l'identifiant).</li>
+      <li>Colle le token, l'ID du serveur et l'ID du salon ci-dessus, puis enregistre.</li>
+    </ol>
+  </div>
+</div>
+
+<%- include('partials/footer') %>
