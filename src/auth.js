@@ -48,18 +48,16 @@ function configurePassport() {
       )
     );
 
-    // Serialize: convert user object to ID for session storage
+    // Serialize: store entire user object in session
     passport.serializeUser((user, done) => {
       console.log('📦 Serializing user:', user.id);
-      done(null, user.id);
+      done(null, user);
     });
     
-    // Deserialize: convert ID back to user object from session
-    passport.deserializeUser((id, done) => {
-      console.log('📦 Deserializing user:', id);
-      // Return the user object with the ID
-      // In a real app, you'd fetch from DB, but we'll reconstruct from the cached session
-      done(null, { id });
+    // Deserialize: retrieve user object from session
+    passport.deserializeUser((user, done) => {
+      console.log('📦 Deserializing user:', user.id);
+      done(null, user);
     });
     
     console.log('✓ Passport Discord strategy configured');
@@ -93,6 +91,7 @@ function ensureAuthenticated(req, res, next) {
   console.log('🔍 ensureAuthenticated check:', {
     isAuthenticated: req.isAuthenticated?.(),
     user: req.user ? req.user.id : 'none',
+    sessionUser: req.session.passport?.user ? req.session.passport.user.id : 'none',
   });
   
   if (req.isAuthenticated && req.isAuthenticated()) {
