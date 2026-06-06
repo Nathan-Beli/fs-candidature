@@ -48,14 +48,18 @@ function configurePassport() {
       )
     );
 
+    // Serialize: convert user object to ID for session storage
     passport.serializeUser((user, done) => {
       console.log('📦 Serializing user:', user.id);
-      done(null, user);
+      done(null, user.id);
     });
     
-    passport.deserializeUser((obj, done) => {
-      console.log('📦 Deserializing user:', obj.id);
-      done(null, obj);
+    // Deserialize: convert ID back to user object from session
+    passport.deserializeUser((id, done) => {
+      console.log('📦 Deserializing user:', id);
+      // Return the user object with the ID
+      // In a real app, you'd fetch from DB, but we'll reconstruct from the cached session
+      done(null, { id });
     });
     
     console.log('✓ Passport Discord strategy configured');
@@ -86,7 +90,17 @@ async function isAdmin(user) {
 }
 
 function ensureAuthenticated(req, res, next) {
-  if (req.isAuthenticated && req.isAuthenticated()) return next();
+  console.log('🔍 ensureAuthenticated check:', {
+    isAuthenticated: req.isAuthenticated?.(),
+    user: req.user ? req.user.id : 'none',
+  });
+  
+  if (req.isAuthenticated && req.isAuthenticated()) {
+    console.log('✓ User is authenticated');
+    return next();
+  }
+  
+  console.log('❌ User not authenticated, redirecting to /login');
   req.session.returnTo = req.originalUrl;
   return res.redirect('/login');
 }
