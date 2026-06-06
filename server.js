@@ -27,15 +27,21 @@ app.use(express.static(path.join(__dirname, 'public')));
 app.use(express.urlencoded({ extended: true }));
 app.use(express.json());
 
-// Sessions
+// Sessions - IMPORTANT: Must be before passport
 app.use(
   session({
     secret: process.env.SESSION_SECRET || 'change-me-federal-studio',
     resave: false,
     saveUninitialized: false,
-    cookie: { maxAge: 1000 * 60 * 60 * 24 * 7 },
+    cookie: { 
+      maxAge: 1000 * 60 * 60 * 24 * 7,
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production', // HTTPS only in production
+    },
   })
 );
+
+// Passport initialization - MUST be after session
 app.use(passport.initialize());
 app.use(passport.session());
 
@@ -77,9 +83,13 @@ app.get(
     return passport.authenticate('discord', { failureRedirect: '/' })(req, res, next);
   },
   (req, res) => {
+    // User is now authenticated
     const dest = req.session.returnTo || '/dashboard';
     delete req.session.returnTo;
-    res.redirect(dest);
+    // Save session before redirecting
+    req.session.save(() => {
+      res.redirect(dest);
+    });
   }
 );
 
