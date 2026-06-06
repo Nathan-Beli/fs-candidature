@@ -6,8 +6,8 @@ const path = require('path');
 const express = require('express');
 const session = require('express-session');
 const passport = require('passport');
-const BetterSqlite3Store = require('connect-better-sqlite3').default;
 const Database = require('better-sqlite3');
+const fs = require('fs');
 
 const db = require('./src/db');
 const discord = require('./src/discord');
@@ -38,16 +38,64 @@ app.use(express.static(path.join(__dirname, 'public')));
 app.use(express.urlencoded({ extended: true }));
 app.use(express.json());
 
-// Initialize SQLite session store
-const sessionDb = new Database(path.join(__dirname, 'data', 'sessions.db'));
-const store = new BetterSqlite3Store({
-  db: sessionDb,
-});
+// SQLite-based session store
+class SqliteSessionStore extends session.Store {
+  constructor() {
+    super();
+    this.dataDir = path.join(__dirname, 'data');
+    if (!fs.existsSync(this.dataDir)) {
+      fs.mkdirSync(this.dataDir, { recursive: true });
+    }
+    this.db = new Database(path.join(this.dataDir, 'sessions.db'));
+    this.db.exec(`
+      CREATE TABLE IF NOT EXISTS sessions (
+        sid TEXT PRIMARY KEY,
+        sess TEXT NOT NULL,
+        expiresAt INTEGER NOT NULL
+      )
+    `);
+  }
 
-// Sessions with persistent SQLite store
+  get(sid, callback) {
+    try {
+      const row = this.db.prepare('SELECT sess FROM sessions WHERE sid = ? AND expiresAt > ?').get(sid, Date.now());
+      if (!row) return callback(null, null);
+      callback(null, JSON.parse(row.sess));
+    } catch (err) {
+      callback(err);
+    }
+  }
+
+  set(sid, sess, callback) {
+    try {
+      const expiresAt = Date.now() + (sess.cookie?.maxAge || 7 * 24 * 60 * 60 * 1000);
+      this.db.prepare('INSERT OR REPLACE INTO sessions (sid, sess, expiresAt) VALUES (?, ?, ?)').run(
+        sid,
+        JSON.stringify(sess),
+        expiresAt
+      );
+      callback(null);
+    } catch (err) {
+      callback(err);
+    }
+  }
+
+  destroy(sid, callback) {
+    try {
+      this.db.prepare('DELETE FROM sessions WHERE sid = ?').run(sid);
+      callback(null);
+    } catch (err) {
+      callback(err);
+    }
+  }
+}
+
+const sessionStore = new SqliteSessionStore();
+
+// Sessions with SQLite store
 app.use(
   session({
-    store: store,
+    store: sessionStore,
     secret: process.env.SESSION_SECRET || 'change-me-federal-studio',
     resave: false,
     saveUninitialized: false,
