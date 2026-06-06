@@ -6,6 +6,8 @@ const path = require('path');
 const express = require('express');
 const session = require('express-session');
 const passport = require('passport');
+const BetterSqlite3Store = require('connect-better-sqlite3').default;
+const Database = require('better-sqlite3');
 
 const db = require('./src/db');
 const discord = require('./src/discord');
@@ -36,9 +38,16 @@ app.use(express.static(path.join(__dirname, 'public')));
 app.use(express.urlencoded({ extended: true }));
 app.use(express.json());
 
-// Sessions
+// Initialize SQLite session store
+const sessionDb = new Database(path.join(__dirname, 'data', 'sessions.db'));
+const store = new BetterSqlite3Store({
+  db: sessionDb,
+});
+
+// Sessions with persistent SQLite store
 app.use(
   session({
+    store: store,
     secret: process.env.SESSION_SECRET || 'change-me-federal-studio',
     resave: false,
     saveUninitialized: false,
