@@ -1,0 +1,42 @@
+<%- include('partials/header', { pageTitle: candidature.title }) %>
+
+<div class="container-narrow section">
+  <div class="card" style="margin-bottom:18px; text-align:center;">
+    <img src="/img/logo.png" alt="" style="width:70px;height:70px;border-radius:50%;margin-bottom:10px" />
+    <h1 style="color:var(--navy);margin:0"><%= candidature.title %></h1>
+    <% if (candidature.description) { %><p class="muted"><%= candidature.description %></p><% } %>
+  </div>
+
+  <% if (submitted) { %>
+    <div class="alert alert-success">Ta candidature a bien été envoyée ! Merci, elle sera étudiée par l'équipe.</div>
+    <a href="/dashboard" class="btn btn-outline">← Retour aux candidatures</a>
+  <% } else if (candidature.status !== 'open') { %>
+    <div class="alert alert-error">Cette candidature est actuellement fermée.</div>
+    <a href="/dashboard" class="btn btn-outline">← Retour aux candidatures</a>
+  <% } else { %>
+    <form method="POST" action="/apply/<%= candidature.slug %>" class="card">
+      <div class="alert alert-info">Connecté en tant que <strong><%= user.username %></strong>. Tes réponses seront associées à ton compte Discord.</div>
+      <% if (!candidature.questions.length) { %>
+        <p class="muted">Aucune question — clique sur Envoyer pour signaler ton intérêt.</p>
+      <% } %>
+      <% candidature.questions.forEach((q) => { %>
+        <div class="form-group">
+          <label for="<%= q.id %>"><%= q.label %><% if (q.required) { %> <span style="color:var(--danger)">*</span><% } %></label>
+          <% if (q.type === 'long') { %>
+            <textarea id="<%= q.id %>" name="answer_<%= q.id %>" <%= q.required ? 'required' : '' %>></textarea>
+          <% } else if (q.type === 'choice') { %>
+            <select id="<%= q.id %>" name="answer_<%= q.id %>" <%= q.required ? 'required' : '' %>>
+              <option value="">— Choisir —</option>
+              <% q.options.forEach((o) => { %><option value="<%= o %>"><%= o %></option><% }) %>
+            </select>
+          <% } else { %>
+            <input type="text" id="<%= q.id %>" name="answer_<%= q.id %>" <%= q.required ? 'required' : '' %> />
+          <% } %>
+        </div>
+      <% }) %>
+      <button type="submit" class="btn btn-gold btn-block">Envoyer ma candidature</button>
+    </form>
+  <% } %>
+</div>
+
+<%- include('partials/footer') %>

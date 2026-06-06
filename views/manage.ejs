@@ -1,0 +1,101 @@
+<%- include('partials/header', { pageTitle: candidature.title }) %>
+
+<% const applyLink = baseUrl + '/apply/' + candidature.slug; %>
+
+<div class="container section">
+  <div class="page-head">
+    <div>
+      <h1><%= candidature.title %></h1>
+      <p><%= candidature.description ? candidature.description : 'Aucune description.' %></p>
+    </div>
+    <a href="/dashboard" class="btn btn-outline">← Retour</a>
+  </div>
+
+  <% if (created) { %>
+    <div class="alert alert-success">Candidature créée ! Partage le lien ci-dessous pour recevoir des réponses.</div>
+  <% } %>
+
+  <div class="card" style="margin-bottom:20px">
+    <div class="flex-between">
+      <div>
+        <strong>Statut :</strong>
+        <span class="badge badge-<%= candidature.status === 'open' ? 'open' : 'closed' %>"><%= candidature.status === 'open' ? 'Ouverte' : 'Fermée' %></span>
+      </div>
+      <div style="display:flex; gap:8px;">
+        <form method="POST" action="/candidature/<%= candidature.slug %>/toggle">
+          <button class="btn btn-sm btn-outline"><%= candidature.status === 'open' ? 'Fermer' : 'Rouvrir' %></button>
+        </form>
+        <form method="POST" action="/candidature/<%= candidature.slug %>/delete" onsubmit="return confirm('Supprimer cette candidature et toutes ses réponses ?')">
+          <button class="btn btn-sm btn-danger">Supprimer</button>
+        </form>
+      </div>
+    </div>
+
+    <div style="margin-top:16px">
+      <label>Lien de candidature partageable</label>
+      <div class="link-box">
+        <input type="text" id="apply-link" value="<%= applyLink %>" readonly />
+        <button type="button" class="btn btn-sm" onclick="copyLink()">Copier</button>
+        <a href="<%= applyLink %>" target="_blank" class="btn btn-sm btn-outline">Ouvrir</a>
+      </div>
+      <p class="hint">Toute personne avec ce lien pourra se connecter via Discord et postuler.</p>
+    </div>
+  </div>
+
+  <h2 style="color:var(--navy)">Réponses (<%= submissions.length %>)</h2>
+
+  <% if (!submissions.length) { %>
+    <div class="card empty"><p class="muted">Aucune réponse pour le moment.</p></div>
+  <% } else { %>
+    <% submissions.forEach((s) => { %>
+      <div class="card sub">
+        <div class="sub-head">
+          <div class="sub-user">
+            <img src="<%= s.applicant.avatar %>" alt="" />
+            <div>
+              <strong><%= s.applicant.username %></strong>
+              <div class="hint">ID: <%= s.applicant.id %> · <%= new Date(s.createdAt).toLocaleString('fr-FR') %></div>
+            </div>
+          </div>
+          <div style="display:flex; align-items:center; gap:10px;">
+            <span class="badge badge-<%= s.status %>"><%= s.status === 'accepted' ? 'Acceptée' : s.status === 'rejected' ? 'Refusée' : 'En attente' %></span>
+          </div>
+        </div>
+        <div class="sub-answers">
+          <% candidature.questions.forEach((q) => { %>
+            <div class="qa">
+              <div class="q"><%= q.label %></div>
+              <div class="a"><%= s.answers[q.id] ? s.answers[q.id] : '—' %></div>
+            </div>
+          <% }) %>
+        </div>
+        <div class="sub-actions" style="margin-top:12px">
+          <form method="POST" action="/submission/<%= s.id %>/status">
+            <input type="hidden" name="status" value="accepted" />
+            <button class="btn btn-sm" style="background:var(--success)">Accepter</button>
+          </form>
+          <form method="POST" action="/submission/<%= s.id %>/status">
+            <input type="hidden" name="status" value="rejected" />
+            <button class="btn btn-sm btn-danger">Refuser</button>
+          </form>
+          <form method="POST" action="/submission/<%= s.id %>/status">
+            <input type="hidden" name="status" value="pending" />
+            <button class="btn btn-sm btn-outline">Remettre en attente</button>
+          </form>
+        </div>
+      </div>
+    <% }) %>
+  <% } %>
+</div>
+
+<script>
+  function copyLink() {
+    const input = document.getElementById('apply-link');
+    input.select();
+    navigator.clipboard.writeText(input.value);
+    event.target.textContent = 'Copié !';
+    setTimeout(() => (event.target.textContent = 'Copier'), 1500);
+  }
+</script>
+
+<%- include('partials/footer') %>

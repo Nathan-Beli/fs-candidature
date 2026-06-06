@@ -1,0 +1,103 @@
+<%- include('partials/header', { pageTitle: 'Créer une candidature' }) %>
+
+<div class="container-narrow section">
+  <div class="page-head">
+    <div>
+      <h1>Nouvelle candidature</h1>
+      <p>Configure le formulaire. Un lien partageable sera généré automatiquement.</p>
+    </div>
+  </div>
+
+  <form method="POST" action="/candidatures" id="cand-form" class="card">
+    <div class="form-group">
+      <label for="title">Titre de la candidature</label>
+      <input type="text" id="title" name="title" placeholder="Ex: Recrutement Staff" required maxlength="120" />
+    </div>
+    <div class="form-group">
+      <label for="description">Description <span class="hint">(optionnel)</span></label>
+      <textarea id="description" name="description" placeholder="Décris le poste, les attentes, etc." maxlength="1000"></textarea>
+    </div>
+
+    <label>Questions</label>
+    <p class="hint" style="margin-top:0">Ajoute les questions auxquelles les candidats devront répondre.</p>
+    <div id="questions"></div>
+    <button type="button" class="btn btn-outline btn-sm" onclick="addQuestion()">+ Ajouter une question</button>
+
+    <input type="hidden" name="questions" id="questions-json" />
+    <div style="margin-top:24px; display:flex; gap:10px;">
+      <button type="submit" class="btn btn-gold">Créer & générer le lien</button>
+      <a href="/dashboard" class="btn btn-outline">Annuler</a>
+    </div>
+  </form>
+</div>
+
+<script>
+  let qIndex = 0;
+  const container = document.getElementById('questions');
+
+  function addQuestion(preset) {
+    const id = 'q_' + (qIndex++);
+    const wrap = document.createElement('div');
+    wrap.className = 'q-item';
+    wrap.dataset.id = id;
+    wrap.innerHTML = `
+      <div class="q-head">
+        <input type="text" class="q-label" placeholder="Intitulé de la question" />
+        <button type="button" class="btn btn-sm btn-danger" onclick="this.closest('.q-item').remove()">Suppr.</button>
+      </div>
+      <div class="q-row">
+        <select class="q-type" onchange="toggleOptions(this)">
+          <option value="short">Réponse courte</option>
+          <option value="long">Paragraphe</option>
+          <option value="choice">Choix multiple</option>
+        </select>
+        <div class="checkbox-row">
+          <input type="checkbox" class="q-required" id="${id}-req" />
+          <label for="${id}-req">Obligatoire</label>
+        </div>
+      </div>
+      <div class="q-options" style="display:none">
+        <div class="opt-list"></div>
+        <button type="button" class="btn btn-sm btn-outline" onclick="addOption(this)">+ Option</button>
+      </div>
+    `;
+    container.appendChild(wrap);
+  }
+
+  function toggleOptions(select) {
+    const opts = select.closest('.q-item').querySelector('.q-options');
+    if (select.value === 'choice') {
+      opts.style.display = 'block';
+      if (!opts.querySelector('.opt-row')) addOption(opts.querySelector('button'));
+    } else {
+      opts.style.display = 'none';
+    }
+  }
+
+  function addOption(btn) {
+    const list = btn.closest('.q-options').querySelector('.opt-list');
+    const row = document.createElement('div');
+    row.className = 'opt-row';
+    row.innerHTML = `<input type="text" class="opt-input" placeholder="Option" />
+      <button type="button" class="btn btn-sm btn-outline" onclick="this.closest('.opt-row').remove()">×</button>`;
+    list.appendChild(row);
+  }
+
+  document.getElementById('cand-form').addEventListener('submit', function (e) {
+    const questions = [];
+    document.querySelectorAll('.q-item').forEach((item) => {
+      const label = item.querySelector('.q-label').value.trim();
+      if (!label) return;
+      const type = item.querySelector('.q-type').value;
+      const required = item.querySelector('.q-required').checked;
+      const options = [...item.querySelectorAll('.opt-input')].map((i) => i.value.trim()).filter(Boolean);
+      questions.push({ label, type, required, options });
+    });
+    document.getElementById('questions-json').value = JSON.stringify(questions);
+  });
+
+  // Start with one question
+  addQuestion();
+</script>
+
+<%- include('partials/footer') %>

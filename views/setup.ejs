@@ -1,0 +1,10 @@
+<%- include('partials/header', { pageTitle: 'Configuration' }) %>
+<div class="container-narrow section">
+  <div class="card">
+    <h1 style="color:var(--navy)" class="mt-0">Configuration requise</h1>
+    <p>La connexion Discord n'est pas encore configurée sur ce serveur.</p>
+    <p class="muted">Renseigne les variables <code>DISCORD_CLIENT_ID</code> et <code>DISCORD_CLIENT_SECRET</code> dans le fichier <code>.env</code> (voir <code>.env.example</code>), puis redémarre l'application.</p>
+    <a href="/" class="btn btn-outline">← Retour</a>
+  </div>
+</div>
+<%- include('partials/footer') %>
