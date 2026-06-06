@@ -14,7 +14,16 @@ const auth = require('./src/auth');
 const app = express();
 const PORT = process.env.PORT || 3000;
 
+// Debug: Log environment variables
+console.log('=== CONFIGURATION DEBUG ===');
+console.log('DISCORD_CLIENT_ID:', process.env.DISCORD_CLIENT_ID ? '✓ Présent' : '✗ MANQUANT');
+console.log('DISCORD_CLIENT_SECRET:', process.env.DISCORD_CLIENT_SECRET ? '✓ Présent' : '✗ MANQUANT');
+console.log('DISCORD_CALLBACK_URL:', process.env.DISCORD_CALLBACK_URL || 'http://localhost:3000/callback');
+console.log('NODE_ENV:', process.env.NODE_ENV || 'development');
+console.log('========================');
+
 const strategyReady = auth.configurePassport();
+console.log('Stratégie Passport Discord:', strategyReady ? '✓ Configurée' : '✗ Non configurée');
 
 // View engine
 app.set('view engine', 'ejs');
@@ -27,7 +36,7 @@ app.use(express.static(path.join(__dirname, 'public')));
 app.use(express.urlencoded({ extended: true }));
 app.use(express.json());
 
-// Sessions - IMPORTANT: Must be before passport
+// Sessions
 app.use(
   session({
     secret: process.env.SESSION_SECRET || 'change-me-federal-studio',
@@ -36,12 +45,12 @@ app.use(
     cookie: { 
       maxAge: 1000 * 60 * 60 * 24 * 7,
       httpOnly: true,
-      secure: process.env.NODE_ENV === 'production', // HTTPS only in production
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'lax',
     },
   })
 );
 
-// Passport initialization - MUST be after session
 app.use(passport.initialize());
 app.use(passport.session());
 
@@ -61,6 +70,24 @@ async function withRole(req, res, next) {
 }
 app.use(withRole);
 
+// Debug route
+app.get('/debug', (req, res) => {
+  res.json({
+    authenticated: req.isAuthenticated(),
+    user: req.user || null,
+    strategyReady,
+    session: {
+      id: req.sessionID,
+      cookie: req.session.cookie,
+    },
+    env: {
+      DISCORD_CLIENT_ID: process.env.DISCORD_CLIENT_ID ? '✓' : '✗',
+      DISCORD_CLIENT_SECRET: process.env.DISCORD_CLIENT_SECRET ? '✓' : '✗',
+      NODE_ENV: process.env.NODE_ENV,
+    },
+  });
+});
+
 // ----------------------------------------------------------------------------
 // Auth routes
 // ----------------------------------------------------------------------------
@@ -70,24 +97,41 @@ app.get('/', (req, res) => {
 });
 
 app.get('/login', (req, res, next) => {
+  console.log('🔐 Login route hit');
   if (!strategyReady) {
+    console.log('⚠️  Strategy not ready!');
     return res.status(503).render('setup', {});
   }
+  console.log('✓ Starting Discord authentication...');
   return passport.authenticate('discord')(req, res, next);
 });
 
 app.get(
   '/callback',
   (req, res, next) => {
-    if (!strategyReady) return res.redirect('/');
+    console.log('🔄 Callback route hit');
+    if (!strategyReady) {
+      console.log('⚠️  Strategy not ready in callback!');
+      return res.redirect('/');
+    }
+    console.log('✓ Authenticating with Passport...');
     return passport.authenticate('discord', { failureRedirect: '/' })(req, res, next);
   },
   (req, res) => {
+    console.log('✓ Authentication successful');
+    console.log('User:', req.user);
+    
     // User is now authenticated
     const dest = req.session.returnTo || '/dashboard';
     delete req.session.returnTo;
+    
     // Save session before redirecting
-    req.session.save(() => {
+    req.session.save((err) => {
+      if (err) {
+        console.error('❌ Session save error:', err);
+        return res.status(500).send('Session error');
+      }
+      console.log('✓ Session saved, redirecting to:', dest);
       res.redirect(dest);
     });
   }
