@@ -1,0 +1,28 @@
+services:
+  - type: web
+    name: federal-studio
+    runtime: node
+    plan: free
+    # Render clone tout le depot (src/, views/, public/...) puis :
+    buildCommand: npm install
+    startCommand: npm start
+    autoDeploy: true
+    envVars:
+      - key: NODE_VERSION
+        value: "22"
+      - key: PORT
+        value: "3000"
+      - key: ADMIN_ID
+        value: "1016479613297369139"
+      # Genere automatiquement une cle de session aleatoire
+      - key: SESSION_SECRET
+        generateValue: true
+      # A renseigner dans le dashboard Render (Environment) :
+      - key: DISCORD_CLIENT_ID
+        sync: false
+      - key: DISCORD_CLIENT_SECRET
+        sync: false
+      - key: DISCORD_CALLBACK_URL
+        sync: false
+      - key: BASE_URL
+        sync: false
