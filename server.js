@@ -203,9 +203,12 @@ app.get(
     console.log('✓ Authentication successful');
     console.log('User:', req.user);
     
-    // User is now authenticated
+    // User is now authenticated - save to session
     const dest = req.session.returnTo || '/dashboard';
     delete req.session.returnTo;
+    
+    // Explicitly set passport.user to ensure it's in the session
+    req.session.passport = { user: req.user };
     
     // Save session before redirecting
     req.session.save((err) => {
@@ -230,6 +233,7 @@ app.get('/logout', (req, res, next) => {
 // Dashboard
 // ----------------------------------------------------------------------------
 app.get('/dashboard', auth.ensureAuthenticated, (req, res) => {
+  console.log('📊 Dashboard route hit');
   const candidatures = db.listCandidatures();
   const counts = {};
   db.listSubmissions().forEach((s) => {
