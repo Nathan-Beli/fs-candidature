@@ -2,8 +2,8 @@
   --navy: #1b3a5b;
   --navy-dark: #142b44;
   --navy-light: #25507a;
-  --gold: #c8a24a;
-  --gold-dark: #b08a35;
+  --gold: #b79a5e;
+  --gold-dark: #9d7f47;
   --bg: #f4f6f9;
   --card: #ffffff;
   --text: #1f2a37;
@@ -59,7 +59,7 @@ a:hover { text-decoration: underline; }
   font-weight: 500;
 }
 .nav-links a:hover { background: rgba(255,255,255,.1); text-decoration: none; }
-.nav-links a.active { background: rgba(200,162,74,.18); color: var(--gold); }
+.nav-links a.active { background: rgba(183,154,94,.18); color: var(--gold); }
 .nav-user { display: flex; align-items: center; gap: 10px; }
 .nav-user img { width: 32px; height: 32px; border-radius: 50%; border: 2px solid var(--gold); object-fit: cover; }
 .nav-user .name { font-size: 14px; }
