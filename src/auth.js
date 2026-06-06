@@ -14,36 +14,56 @@ function configurePassport() {
   const callbackURL =
     process.env.DISCORD_CALLBACK_URL || 'http://localhost:3000/callback';
 
+  console.log('🔧 Passport Configuration:');
+  console.log('  - CLIENT_ID:', clientID ? '✓' : '✗');
+  console.log('  - CLIENT_SECRET:', clientSecret ? '✓' : '✗');
+  console.log('  - CALLBACK_URL:', callbackURL);
+
   if (!clientID || !clientSecret) {
-    // Strategy not configured; routes will show a friendly setup message.
+    console.log('❌ Discord credentials missing!');
     return false;
   }
 
-  passport.use(
-    new DiscordStrategy(
-      {
-        clientID,
-        clientSecret,
-        callbackURL,
-        scope: ['identify'],
-      },
-      (accessToken, refreshToken, profile, done) => {
-        const user = {
-          id: profile.id,
-          username: profile.global_name || profile.username,
-          discriminator: profile.discriminator,
-          avatar: profile.avatar
-            ? `https://cdn.discordapp.com/avatars/${profile.id}/${profile.avatar}.png`
-            : 'https://cdn.discordapp.com/embed/avatars/0.png',
-        };
-        return done(null, user);
-      }
-    )
-  );
+  try {
+    passport.use(
+      new DiscordStrategy(
+        {
+          clientID,
+          clientSecret,
+          callbackURL,
+          scope: ['identify'],
+        },
+        (accessToken, refreshToken, profile, done) => {
+          console.log('✓ Discord profile received:', profile.id, profile.username);
+          const user = {
+            id: profile.id,
+            username: profile.global_name || profile.username,
+            discriminator: profile.discriminator,
+            avatar: profile.avatar
+              ? `https://cdn.discordapp.com/avatars/${profile.id}/${profile.avatar}.png`
+              : 'https://cdn.discordapp.com/embed/avatars/0.png',
+          };
+          return done(null, user);
+        }
+      )
+    );
 
-  passport.serializeUser((user, done) => done(null, user));
-  passport.deserializeUser((obj, done) => done(null, obj));
-  return true;
+    passport.serializeUser((user, done) => {
+      console.log('📦 Serializing user:', user.id);
+      done(null, user);
+    });
+    
+    passport.deserializeUser((obj, done) => {
+      console.log('📦 Deserializing user:', obj.id);
+      done(null, obj);
+    });
+    
+    console.log('✓ Passport Discord strategy configured');
+    return true;
+  } catch (err) {
+    console.error('❌ Error configuring Passport:', err);
+    return false;
+  }
 }
 
 // Determine whether a user can create/manage candidatures.
@@ -85,11 +105,14 @@ function ensureAdmin(req, res, next) {
         message: "Tu n'as pas l'autorisation de gérer les candidatures.",
       });
     })
-    .catch(() => res.status(500).render('error', {
-      user: req.user,
-      code: 500,
-      message: 'Erreur de vérification des permissions.',
-    }));
+    .catch((err) => {
+      console.error('❌ Error checking admin:', err);
+      return res.status(500).render('error', {
+        user: req.user,
+        code: 500,
+        message: 'Erreur de vérification des permissions.',
+      });
+    });
 }
 
 module.exports = {
